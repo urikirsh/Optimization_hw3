@@ -1,11 +1,11 @@
 import numpy as np
 import math
+import matplotlib.pyplot as plt
 
 ALPHA_0 = 1
 SIGMA = 0.25
 BETA = 0.5
-# EPSILON = pow(10, -5)
-EPSILON = pow(10, -2)
+EPSILON = pow(10, -5)
 
 
 def armijo_line_search(x, fun, direction):
@@ -82,7 +82,6 @@ def BFGS(fun, x_0):
         old_dir_der = np.dot(f_grad, direction)
         dummy, new_f_grad = fun(x_k)
         new_dir_der = np.dot(direction, new_f_grad)
-        print('checkpoint')
 
         if new_dir_der >= 0 or new_dir_der <= old_dir_der:
             y_k = g_next_x - f_grad
@@ -147,8 +146,16 @@ def main():
     for val in grads:
         assert val == 0
 
-    x0 = np.asarray([0, 0, 0, 0, 0])
+    x0 = np.zeros(10)
     scalar, points = BFGS(rosenbrock, x0)
+    plt.figure()
+    plt.plot(points)
+    plt.semilogy()
+    plt.xlabel('Number of iterations')
+    plt.ylabel('$f(x_k)-p^*$')
+    plt.grid()
+    plt.title('BFGS of Rosenbrock function')
+    plt.show()
     print('success')
 
 
