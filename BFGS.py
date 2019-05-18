@@ -112,7 +112,7 @@ def BFGS(fun, x_0):
 
             B_k = new_B
 
-    return fun(x_k), m
+    return x_k, m
 
 
 def rosenbrock(x):
@@ -141,15 +141,19 @@ def rosenbrock(x):
 
 def main():
     # np.seterr(all='raise')
-    scalar, grads = rosenbrock(np.asarray([1, 1]))
-    assert scalar == 0
-    for val in grads:
+    x_opt, vals_of_x_k = rosenbrock(np.asarray([1, 1]))
+    assert x_opt == 0
+    for val in vals_of_x_k:
         assert val == 0
 
     x0 = np.zeros(10)
-    scalar, points = BFGS(rosenbrock, x0)
+    x_opt, vals_of_x_k = BFGS(rosenbrock, x0)
+    opt_val, grad_opt = rosenbrock(np.asarray(x_opt))
+    grad_opt_size = np.linalg.norm(grad_opt)
+    print("\n\nfinal x = ", x_opt, "\n\nfinal gradient=", grad_opt, "\n of size=", grad_opt_size)
+
     plt.figure()
-    plt.plot(points)
+    plt.plot(vals_of_x_k)
     plt.semilogy()
     plt.xlabel('Number of iterations')
     plt.ylabel('$f(x_k)-p^*$')
