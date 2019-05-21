@@ -8,6 +8,16 @@ BETA = 0.5
 EPSILON = pow(10, -5)
 
 
+def sqr(vec):
+    '''
+    :param vec: column vector
+    :return: vec * vec^T
+    '''
+    assert isinstance(vec, np.ndarray)
+    assert vec.shape[1] == 1
+    return vec.dot(vec.T)
+
+
 def armijo_line_search(x, fun, direction):
     '''
     Run an Armijo line search and return the step size
@@ -19,6 +29,7 @@ def armijo_line_search(x, fun, direction):
 
     assert isinstance(x, np.ndarray)
     assert isinstance(direction, np.ndarray)
+    x = x.reshape(len(x), 1)
 
     fun_at_x, grad_x = fun(x)
     alpha_k = ALPHA_0
@@ -36,6 +47,7 @@ def rosenbrock(x):
     :return: (rosenbrock value of x, gradient of rosenbrock function at point x)
     '''
     assert isinstance(x, np.ndarray)
+    assert x.shape[1] == 1
 
     scalar_ret_value = np.sum(100.0 * (x[1:] - x[:-1]**2.0)**2.0 + (1 - x[:-1])**2.0, axis=0)
 
@@ -44,6 +56,8 @@ def rosenbrock(x):
         gradients[i] += -2*(1-x[i]) - 400 * (x[i+1]-x[i]**2)*x[i]
     for i in range(1, len(x)):
         gradients[i] += 200*(x[i] - x[i-1] ** 2)
+
+    gradients = gradients.reshape((len(gradients), 1))
 
     return scalar_ret_value, gradients
 
@@ -64,19 +78,18 @@ def BFGS(fun, x_0):
 
     x_len = len(x_0)
 
-    m = []
-    nI = np.identity(x_len)
-    B_k = nI
+    f_history = []
+    B_k = np.identity(x_len)
     x_k = x_0
 
     while True:
         print("x_k =", x_k)
-        f_val, f_grad = fun(x_k)
-        m.append(f_val)
-        if np.linalg.norm(f_grad) < EPSILON:
+        f_x, g_x = fun(x_k)
+        f_history.append(f_x)
+        if np.linalg.norm(g_x) < EPSILON:
             break
         # 1. Compute approx Newton direction
-        direction = -np.dot(B_k, f_grad)
+        direction = -np.dot(B_k, g_x)
 
         # Normalize the direction
         dir_size = np.linalg.norm(direction)
@@ -88,62 +101,41 @@ def BFGS(fun, x_0):
 
         # 2. Inexact line search - Armijo method
         s_k = armijo_line_search(x_k, fun, direction) * direction
-        x_k = x_k + s_k
+        next_x = x_k + s_k
+
         # 3. Compute next gradient
-        dummy, g_next_x = fun(x_k)
+        f_next_x, g_next_x = fun(next_x)
+
         # 4. Update approximate inverse Hessian
+        p = next_x - x_k
+        q = g_next_x - g_x
+        s = B_k.dot(q)
+        t = s.T.dot(q)
 
-        # Experiment
-        old_dir_der = np.dot(f_grad, direction)
-        dummy, new_f_grad = fun(x_k)
-        new_dir_der = np.dot(direction, new_f_grad)
+        m = p.T.dot(q)
+        v = p / m - s / t
+        next_B = B_k + sqr(p) / m - sqr(s) / t + t * sqr(v)
 
-        if new_dir_der >= 0 or new_dir_der <= old_dir_der:
-            y_k = g_next_x - f_grad
-            s_k = s_k.reshape(len(s_k), 1)
-            y_k = y_k.reshape(len(y_k), 1)
-            sty = np.dot(np.transpose(s_k), y_k)  # S_k^T*Y_k, should be a scalar
-            assert sty.shape == (1, 1)
-            if sty == 0:
-                continue
-            ytby = np.dot(np.dot(np.transpose(y_k), B_k), y_k) # y_k^t * B_k * y_k, scalar
-            assert ytby.shape == (1, 1)
-            skskt = np.dot(s_k, np.transpose(s_k))  # s_k*s_k^t
-            assert skskt.shape == (len(s_k), len(s_k))
-            assert skskt.shape == B_k.shape
+        B_k = next_B
+        x_k = next_x
 
-            second_additive = (sty + ytby) * skskt / (sty ** 2)
-            assert second_additive.shape == B_k.shape
-
-            byst = np.dot(np.dot(B_k, y_k), np.transpose(s_k))  # B_k*y_k*s_k^t
-            assert byst.shape == B_k.shape
-            sytb = np.dot(np.dot(s_k, np.transpose(y_k)), B_k)
-            assert sytb.shape == B_k.shape
-            third_additive = (byst + sytb) / sty
-            assert third_additive.shape == B_k.shape
-
-            new_B = B_k + second_additive - third_additive
-            assert new_B.shape == B_k.shape
-
-            B_k = new_B
-
-    return x_k, m
+    return x_k, f_history
 
 
 def main():
-    x_opt, vals_of_x_k = rosenbrock(np.asarray([1, 1]))
+    x_opt, grad_at_x_opt = rosenbrock(np.asarray([1, 1]).reshape(2, 1))
     assert x_opt == 0
-    for val in vals_of_x_k:
+    for val in grad_at_x_opt:
         assert val == 0
 
-    x0 = np.zeros(10)
-    x_opt, vals_of_x_k = BFGS(rosenbrock, x0)
+    x0 = np.zeros(10).reshape(10, 1)
+    x_opt, grad_at_x_opt = BFGS(rosenbrock, x0)
     opt_val, grad_opt = rosenbrock(np.asarray(x_opt))
     grad_opt_size = np.linalg.norm(grad_opt)
     print("\n\nfinal x = ", x_opt, "\n\nfinal gradient=", grad_opt, "\n of size=", grad_opt_size)
 
     plt.figure()
-    plt.plot(vals_of_x_k)
+    plt.plot(grad_at_x_opt)
     plt.semilogy()
     plt.xlabel('Number of iterations')
     plt.ylabel('$f(x_k)-p^*$')
