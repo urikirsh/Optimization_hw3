@@ -20,17 +20,32 @@ def armijo_line_search(x, fun, direction):
     assert isinstance(x, np.ndarray)
     assert isinstance(direction, np.ndarray)
 
-    fun_x, grad_x = fun(x)
+    fun_at_x, grad_x = fun(x)
     alpha_k = ALPHA_0
+    df = np.dot(direction.T, grad_x)
 
-    while True:
-        left_side, dummy = fun(x + alpha_k * direction)
-        right_side = fun_x + SIGMA * alpha_k * np.transpose(direction).dot(grad_x)
-        if left_side <= right_side:
-            # return min(alpha_k, pow(10, -5))
-            return alpha_k
-
+    while fun(x + alpha_k * direction)[0] > fun_at_x + SIGMA * alpha_k * df:
         alpha_k *= BETA
+
+    return alpha_k
+
+
+def rosenbrock(x):
+    '''
+    :param x: A vector
+    :return: (rosenbrock value of x, gradient of rosenbrock function at point x)
+    '''
+    assert isinstance(x, np.ndarray)
+
+    scalar_ret_value = np.sum(100.0 * (x[1:] - x[:-1]**2.0)**2.0 + (1 - x[:-1])**2.0, axis=0)
+
+    gradients = np.zeros(len(x))
+    for i in range(0, len(x)-1):
+        gradients[i] += -2*(1-x[i]) - 400 * (x[i+1]-x[i]**2)*x[i]
+    for i in range(1, len(x)):
+        gradients[i] += 200*(x[i] - x[i-1] ** 2)
+
+    return scalar_ret_value, gradients
 
 
 def BFGS(fun, x_0):
@@ -115,32 +130,7 @@ def BFGS(fun, x_0):
     return x_k, m
 
 
-def rosenbrock(x):
-    '''
-    :param x: A vector
-    :return: (rosenbrock value of x, gradient of rosenbrock function at point x)
-    '''
-    assert isinstance(x, np.ndarray)
-
-    scalar_ret_value = 0
-
-    for i in range(0, len(x)-1):
-        try:
-            scalar_ret_value += (1-x[i])**2 + 100 * (x[i+1] - x[i]**2) ** 2
-        except FloatingPointError:
-            print("i =", i, "x=", x, "scalar =", scalar_ret_value)
-
-    gradients = np.zeros(len(x))
-    for i in range(0, len(x)-1):
-        gradients[i] += -2*(1-x[i]) - 400 * (x[i+1]-x[i]**2)*x[i]
-    for i in range(1, len(x)):
-        gradients[i] += 200*(x[i] - x[i-1] ** 2)
-
-    return scalar_ret_value, gradients
-
-
 def main():
-    # np.seterr(all='raise')
     x_opt, vals_of_x_k = rosenbrock(np.asarray([1, 1]))
     assert x_opt == 0
     for val in vals_of_x_k:
