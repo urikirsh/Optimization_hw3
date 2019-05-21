@@ -129,13 +129,14 @@ def main():
         assert val == 0
 
     x0 = np.zeros(10).reshape(10, 1)
-    x_opt, grad_at_x_opt = BFGS(rosenbrock, x0)
+    x_opt, x_history = BFGS(rosenbrock, x0)
+    print("solved after", len(x_history), "iterations")
     opt_val, grad_opt = rosenbrock(np.asarray(x_opt))
     grad_opt_size = np.linalg.norm(grad_opt)
     print("\n\nfinal x = ", x_opt, "\n\nfinal gradient=", grad_opt, "\n of size=", grad_opt_size)
 
     plt.figure()
-    plt.plot(grad_at_x_opt)
+    plt.plot(x_history)
     plt.semilogy()
     plt.xlabel('Number of iterations')
     plt.ylabel('$f(x_k)-p^*$')

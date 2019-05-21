@@ -17,14 +17,15 @@
  %end of title section
 \section*{Part 1 - BFGS}
 \subsection*{Task 2}
-We chose $N=10$. Our starting point was $x_0=(0,0,..0)$. We know that a local minimum of the function exists at $x^*=(1,1,...)$ and that $p^*=0$ (our function is non-negative so this must be a global minimum as well). We stopped after 97 iterations at\\\\
-$x_{final}$=[ 5.51033772e-07,  6.67959021e-07, -4.45033926e-06, 
-2.72106755e-06, 1.86952265e-06, -7.31025632e-09, -1.21113396e-06, -5.86666139e-06, 4.51107833e-06, -5.76553427e-07]\\\\
-The error function and gradient at this point are $$f(x_{final})-p^*=5.359357003868173e-14$$
-$\nabla f(x_{final})=$[ 5.51033772e-07  6.67959021e-07 -4.45033926e-06  2.72106755e-06\\
-  1.86952265e-06 -7.31025632e-09 -1.21113396e-06 -5.86666139e-06
-  4.51107833e-06\\ -5.76553427e-07]
-$$||\nabla f(x_{final})|| = 9.381977770909129e-06$$
+We chose $N=10$. Our starting point was $x_0=(0,0,..0)$. We know that a local minimum of the function exists at $x^*=(1,1,...)$ and that $p^*=0$ (our function is non-negative so this must be a global minimum as well). We stopped after 60 iterations (we started from iteration number 0) at
+\begin{center}
+$x_{final}$ =[ 1.,  1., 1., 1., 1., 1., 1., 1., 1., 1.]
+\end{center}
+The error function and gradient at this point is $$f(x_{final})-p^*\approx 0$$
+$\nabla f(x_{final})=$[-1.03489194e-07 4.64227620e-07 -2.33440170e-07 -3.37145026e-07 \\
+4.63302603e-07 1.27499791e-07 -6.70338432e-07 5.13097599e-07 -3.48798911e-07 \\
+1.10922516e-07]
+$$||\nabla f(x_{final})|| = 1.2132069569224647e-06$$
 We can see in the graph below that the error function $f(x_k)-p^*$, where $k$ is the number of iterations, is monotonously decreasing. This means we always advance in the direction of the minimum.
 \begin{figure}[ht!]
 	\hfill\includegraphics[width=\linewidth]{rosenbrock_graph.jpg}\hspace*{\fill}
