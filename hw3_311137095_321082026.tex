@@ -70,8 +70,16 @@ We can calculate their gradients
 \nabla_{u_3} \Psi &= \nabla_r \Psi
 \end{align*}
 
+Now we can calculate the gradients with respect to the weights.
+\begin{align*}
+d\Psi &= \nabla_{u_1}\Psi^Tdu_1=\nabla_{u_1}\Psi^T dW_1^Tx
+=Tr(\nabla_{u_1}\Psi^T dW_1^Tx)=Tr(x\nabla_{u_1}\Psi^T dW_1^T)
+=x\nabla_{u_1}\Psi^T dW_1^T\\
+d\Psi &= \nabla_{u_1}\Psi x^TdW_1 \Rightarrow
+\end{align*}
 \begin{center}
-\boxed{\nabla_{b_3}\Psi = 1}
+\boxed{\nabla_{W_1}\Psi =  W_1'\Phi_1'W_2'\Phi_2'W_3'\nabla_r x^T}
 \end{center}
+
 
 \end{document}
