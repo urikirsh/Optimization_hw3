@@ -14,7 +14,7 @@ def phi_f(x: np.ndarray):
 
 def phi_g(x: np.ndarray):
     g_i_i = 1 / (np.cosh(x)**2)
-    return np. diag(np.ravel(g_i_i))
+    return np.diag(np.ravel(g_i_i))
 
 
 def dnn_forward(x: np.ndarray, params: dict, nargout=1):
@@ -57,6 +57,10 @@ def analytic_calc_dir_grads_dnn_error(x: np.ndarray, parameters: dict, direction
     if direction == 'W3':
         return nabla_r_Psi @ phi_f(u2).T
 
+    b2_dir_der = (phi_g(u2) @ parameters['W3']) * nabla_r_Psi
+    if direction == 'b2':
+        return b2_dir_der.T
+
     raise NotImplementedError('Direction', direction, 'not implemented yet')
 
 
@@ -70,7 +74,7 @@ def generate_bias(n: int, random=False):
 def generate_weight(m: int, n: int):
     assert m > 0
     assert n > 0
-    return np.random.rand(m, n)
+    return np.random.rand(m, n) / math. sqrt(n)
 
 
 def generate_params():
@@ -88,9 +92,10 @@ def numdiff_calc_dnn_error_grad(grad_of, x, params: dict, epsilon: float):
     assert epsilon > 0
     assert grad_of in params
 
-    max_abs_val_of_x = max(x.min(), x.max(), key=abs)
+    max_abs_val_of_x = abs(max(x.min(), x.max(), key=abs))
     dim = len(x)
     epsilon = pow(epsilon, 1 / dim) * max_abs_val_of_x
+    assert epsilon > 0
 
     assert x.shape[1] == 1
 
@@ -137,9 +142,9 @@ class task3_q_2 (unittest.TestCase):
         # from hw_1 import numdiff
         params = generate_params()
         x = 2 * np.random.rand(2, 1) - 1
-        epsilon = pow(10, 0)
+        epsilon = pow(10, -15)
 
-        ready_tests = ['W3', 'b3']
+        ready_tests = ['b2', 'W3', 'b3']
         for test in ready_tests:
             anal = analytic_calc_dir_grads_dnn_error(x, params, test)
             numeric = numdiff_calc_dnn_error_grad(test, x, params, epsilon)
