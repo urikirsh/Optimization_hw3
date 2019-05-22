@@ -91,19 +91,9 @@ def BFGS(fun, x_0):
         # 1. Compute approx Newton direction
         direction = -np.dot(B_k, g_x)
 
-        # Normalize the direction
-        # dir_size = np.linalg.norm(direction)
-        # if dir_size == 0:
-        #     raise FloatingPointError()
-        # if dir_size < 0:
-        #     print('DELETE THIS BREAHKPOINT')
-        # assert dir_size > 0
-        # direction = direction / dir_size
-        # assert abs(np.linalg.norm(direction) - 1) < 0.0000001  # Turns out not to be zero for rounding errors
-
         # 2. Inexact line search - Armijo method
         step_size = armijo_line_search(x_k, fun, direction)
-        step_size = max(step_size, pow(10, -10))
+        step_size = max(step_size, pow(10, -12))
         s_k = step_size * direction
         next_x = x_k + s_k
 

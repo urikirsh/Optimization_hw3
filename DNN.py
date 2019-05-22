@@ -212,11 +212,11 @@ def main():
 
     # generate train and test data
     # Ntrain = 500
-    Ntrain = 2
+    Ntrain = 4
     X_train = 4 * np.random.rand(2, Ntrain) - 2
 
     # Ntest = 200
-    Ntest = 1
+    Ntest = 5
     X_test = 4 * np.random.rand(2, Ntest) - 2
 
     Y_train = np.zeros((Ntrain, 1))
@@ -243,6 +243,20 @@ def main():
     plt.ylabel('$|F(x, W_k)-f(x_1, x_2)|^2$')
     plt.grid()
     plt.title('BFGS of DNN trying to approximate $f(x_1, x_2) = x_1*exp(-x_1^2-x_2^2)$')
+    plt.show(block=False)
+
+    W1, W2, W3, b1, b2, b3 = unpack_params(learned_params)
+    param_dict = {'W1': W1, 'W2': W2, 'W3': W3, 'b1': b1, 'b2': b2, 'b3': b3}
+    reconstructed = np.array(list(dnn_forward(x.reshape(-1, 1), param_dict)[0][0] for x in X_test.T))
+
+    fig = plt.figure(figsize=(10, 8))
+    ax = fig.add_subplot(111, projection='3d')
+    ax.plot_surface(X1, X2, Y, cmap=plt.cm.coolwarm, alpha=.6)
+    ax.set_xlabel('$x_1$')
+    ax.set_ylabel('$x_2$')
+    ax.set_zlabel('$F(x, W)$')
+    ax.scatter(X_test[:][0], X_test[:][1], reconstructed, c='g', alpha=.61)
+    plt.title('$Predictions of trained DNN$')
     plt.show()
 
     print('success')
