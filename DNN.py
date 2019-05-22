@@ -61,6 +61,9 @@ def analytic_calc_dir_grads_dnn_error(x: np.ndarray, parameters: dict, direction
     if direction == 'b2':
         return b2_dir_der.T
 
+    if direction == 'W2':
+        return b2_dir_der @ phi_f(u1).T
+
     raise NotImplementedError('Direction', direction, 'not implemented yet')
 
 
@@ -93,28 +96,29 @@ def numdiff_calc_dnn_error_grad(grad_of, x, params: dict, epsilon: float):
     assert grad_of in params
 
     max_abs_val_of_x = abs(max(x.min(), x.max(), key=abs))
-    dim = len(x)
-    epsilon = pow(epsilon, 1 / dim) * max_abs_val_of_x
+    x_dim = len(x)
+    epsilon = pow(epsilon, 1 / x_dim) * max_abs_val_of_x
     assert epsilon > 0
 
     assert x.shape[1] == 1
 
-    dim = params[grad_of].shape[0]
-    grad = []
-    for i in range(0, dim):
-        params[grad_of][i] += epsilon
-        right_f = dnn_error(x, params)
-        params[grad_of][i] -= 2*epsilon
-        left_f = dnn_error(x, params)
-        diff = right_f - left_f
-        assert diff.shape == (1, 1)
-        diff = diff[0][0]
-        grad.append(diff / (2*epsilon))
-        # cleanup
-        params[grad_of][i] += epsilon
+    x_dim = params[grad_of].shape[0]
+    y_dim = params[grad_of].shape[1]
+    grad = np.zeros(params[grad_of].shape)
+    for i in range(0, x_dim):
+        for j in range (0,y_dim):
+            params[grad_of][i][j] += epsilon
+            right_f = dnn_error(x, params)
+            params[grad_of][i][j] -= 2*epsilon
+            left_f = dnn_error(x, params)
+            diff = right_f - left_f
+            assert diff.shape == (1, 1)
+            diff = diff[0][0]
+            grad[i][j] = diff / (2*epsilon)
+            # cleanup
+            params[grad_of][i][j] += epsilon
 
-    grad = np.asfarray(grad).reshape((1, dim))
-    return grad
+    return grad.T
 
 
 def main():
@@ -142,9 +146,9 @@ class task3_q_2 (unittest.TestCase):
         # from hw_1 import numdiff
         params = generate_params()
         x = 2 * np.random.rand(2, 1) - 1
-        epsilon = pow(10, -15)
+        epsilon = pow(2, -30)
 
-        ready_tests = ['b2', 'W3', 'b3']
+        ready_tests = ['W2', 'b2', 'W3', 'b3']
         for test in ready_tests:
             anal = analytic_calc_dir_grads_dnn_error(x, params, test)
             numeric = numdiff_calc_dnn_error_grad(test, x, params, epsilon)
