@@ -33,7 +33,7 @@ We can see in the graph below that the error function $f(x_k)-p^*$, where $k$ is
 \end{figure}
 
 \section*{Part 2 - Deep Neural Network}
-\subsection*{Task 3}
+\subsection*{Task 3 - analytical computation and numerical check}
 \begin{align*}
 \Psi(r_i)&=r_i^2\\
 &=[F(x^i,w)-y_i]^2\\
@@ -75,9 +75,8 @@ Now we can calculate the gradients with respect to the weights and bias paramete
 %gradient by w1
 \begin{align*}
 d\Psi &= \nabla_{u_1}\Psi^Tdu_1=\nabla_{u_1}\Psi^T dW_1^Tx
-=Tr(\nabla_{u_1}\Psi^T dW_1^Tx)=Tr(x\nabla_{u_1}\Psi^T dW_1^T)
-=x\nabla_{u_1}\Psi^T dW_1^T\\
-d\Psi &= \nabla_{u_1}\Psi x^TdW_1 
+=Tr(\nabla_{u_1}\Psi^T dW_1^Tx)=Tr(x\nabla_{u_1}\Psi^T dW_1^T)\\
+d\Psi &=x\nabla_{u_1}\Psi^T dW_1^T = \nabla_{u_1}\Psi x^TdW_1 
 \end{align*}
 $\Rightarrow \nabla_{W_1}\Psi = \nabla_{u_1}\Psi x^T$
 \begin{center}
@@ -125,5 +124,10 @@ $$d\Psi = \nabla_{u_3}\Psi^Tdu_3 = \nabla_{u_2}\Psi^T db_3 \Rightarrow \nabla_{b
 \boxed{\nabla_{b_3}\Psi = \nabla_r \Psi}
 \end{center}
 
+\subsection*{Task 4 - training the DNN}
+\begin{figure}[ht!]
+	\hfill\includegraphics[width=\linewidth]{target_fun_3d_plot.jpg}\hspace*{\fill}
+	\caption{Task 4 question 1}
+\end{figure}
 
 \end{document}
