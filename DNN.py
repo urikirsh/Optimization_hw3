@@ -64,6 +64,10 @@ def analytic_calc_dir_grads_dnn_error(x: np.ndarray, parameters: dict, direction
     if direction == 'W2':
         return b2_dir_der @ phi_f(u1).T
 
+    b1_dir_der = phi_g(u1) @ parameters['W2'] @ b2_dir_der
+    if direction == 'b1':
+        return b1_dir_der.T
+
     raise NotImplementedError('Direction', direction, 'not implemented yet')
 
 
@@ -148,7 +152,7 @@ class task3_q_2 (unittest.TestCase):
         x = 2 * np.random.rand(2, 1) - 1
         epsilon = pow(2, -30)
 
-        ready_tests = ['W2', 'b2', 'W3', 'b3']
+        ready_tests = ['b1', 'W2', 'b2', 'W3', 'b3']
         for test in ready_tests:
             anal = analytic_calc_dir_grads_dnn_error(x, params, test)
             numeric = numdiff_calc_dnn_error_grad(test, x, params, epsilon)
