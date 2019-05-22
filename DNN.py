@@ -88,11 +88,12 @@ def generate_weight(m: int, n: int):
     return np.random.rand(m, n) / math. sqrt(n)
 
 
-def generate_params():
+def generate_params(random=True):
+    # If random is false, biases will be initialized as zeros
     params = dict()
-    params['b1'] = generate_bias(4, random=True)
-    params['b2'] = generate_bias(3, random=True)
-    params['b3'] = generate_bias(1, random=True)
+    params['b1'] = generate_bias(4, random=random)
+    params['b2'] = generate_bias(3, random=random)
+    params['b3'] = generate_bias(1, random=random)
     params['W1'] = generate_weight(2, 4)
     params['W2'] = generate_weight(4, 3)
     params['W3'] = generate_weight(3, 1)
@@ -129,8 +130,23 @@ def numdiff_calc_dnn_error_grad(grad_of, x, params: dict, epsilon: float):
     return grad.T
 
 
+def pack_params(params):
+    # save the packing dimensions
+    pack_params.shapes = [param.shape for param in params]
+    return np.hstack(np.ravel(param) for param in params).reshape(-1, 1)
+
+
+def unpack_params(packed: np.ndarray):
+    shapes = pack_params.shapes
+    sizes = map(lambda x: x[0] * x[1], shapes)
+    indexes = list(sizes)
+    for i in range(len(indexes) - 1):
+        indexes[i+1] += indexes[i]
+    arrays = np.split(packed, indexes)
+    return (arr.reshape(shape) for arr, shape in zip(arrays, shapes))
+
+
 def main():
-    # unittest.main()
 
     # plot the target function
     line = np.arange(-2, 2, .2)
@@ -163,15 +179,16 @@ def main():
     for i in range(0, Ntest):
         Y_test[i] = vectorized_target_function(X_test[0][i], X_test[1][i])
 
-    print("DELETE THIS DEBUG PRINT LOLZ")
-
 
 class task3_q_2 (unittest.TestCase):
+    '''
+    Testing class
+    '''
 
     def test_target_function(self):
         npt.assert_almost_equal(target_function_f(0, 0), 0)
         npt.assert_almost_equal(target_function_f(0, 17), 0)
-        npt.assert_almost_equal(target_function_f(1, 0), np.exp(1))
+        npt.assert_almost_equal(target_function_f(1, 0), np.exp(-1))
 
 
     def test_generate_params(self):
@@ -199,7 +216,18 @@ class task3_q_2 (unittest.TestCase):
         for i in range(0, 100):
             self.test_grad_numdiff()
 
+    def test_packing(self):
+        a1 = np.array([[4, 5, 6], [41, 51, 63], [1, 2, 1]])
+        a2 = np.array([[100]])
+        a3 = np.array([[411, 225, 446, 55], [411, 225, 446, 55]])
+        p = pack_params((a1, a2, a3))
+        b1, b2, b3 = unpack_params(p)
+        npt.assert_equal(a1, b1)
+        npt.assert_equal(a2, b2)
+        npt.assert_equal(a3, b3)
+
 
 if __name__ == "__main__":
-    main()
+    # main()
+    unittest.main()
 
