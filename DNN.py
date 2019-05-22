@@ -146,7 +146,24 @@ def main():
     ax.set_zlabel('$f(x_1, x_2)$')
     plt.title('$f(x_1, x_2) = x_1*exp(-x_1^2-x_2^2)$')
 
-    plt.show()
+    plt.show(block=False)
+
+    # generate train and test data
+    Ntrain = 500
+    X_train = 4 * np.random.rand(2, Ntrain) - 2
+
+    Ntest = 200
+    X_test = 4 * np.random.rand(2, Ntest) - 2
+
+    Y_train = np.zeros((Ntrain, 1))
+    for i in range(0, Ntrain):
+        Y_train[i] = vectorized_target_function(X_train[0][i], X_train[1][i])
+
+    Y_test = np.zeros((Ntest, 1))
+    for i in range(0, Ntest):
+        Y_test[i] = vectorized_target_function(X_test[0][i], X_test[1][i])
+
+    print("DELETE THIS DEBUG PRINT LOLZ")
 
 
 class task3_q_2 (unittest.TestCase):
