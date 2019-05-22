@@ -92,17 +92,19 @@ def BFGS(fun, x_0):
         direction = -np.dot(B_k, g_x)
 
         # Normalize the direction
-        dir_size = np.linalg.norm(direction)
-        if dir_size == 0:
-            raise FloatingPointError()
-        if not dir_size > 0:
-            print('DELETE THIS BREAHKPOINT')
-        assert dir_size > 0
-        direction = direction / dir_size
-        assert abs(np.linalg.norm(direction) - 1) < 0.0000001  # Turns out not to be zero for rounding errors
+        # dir_size = np.linalg.norm(direction)
+        # if dir_size == 0:
+        #     raise FloatingPointError()
+        # if dir_size < 0:
+        #     print('DELETE THIS BREAHKPOINT')
+        # assert dir_size > 0
+        # direction = direction / dir_size
+        # assert abs(np.linalg.norm(direction) - 1) < 0.0000001  # Turns out not to be zero for rounding errors
 
         # 2. Inexact line search - Armijo method
-        s_k = armijo_line_search(x_k, fun, direction) * direction
+        step_size = armijo_line_search(x_k, fun, direction)
+        step_size = max(step_size, pow(10, -10))
+        s_k = step_size * direction
         next_x = x_k + s_k
 
         # 3. Compute next gradient
@@ -110,18 +112,31 @@ def BFGS(fun, x_0):
 
         # 4. Update approximate inverse Hessian
         p = next_x - x_k
+        if np.linalg.norm(p) == 0:
+            raise RuntimeError("We stopped moving :(")
         q = g_next_x - g_x
-        if np.linalg.norm(q) != 0:
-            s = B_k.dot(q)
-            t = s.T.dot(q)
 
-            m = p.T.dot(q)
-            v = p / m - s / t
-            next_B = B_k + sqr(p) / m - sqr(s) / t + t * sqr(v)
+        if np.linalg.norm(q) == 0:
+            raise RuntimeError("Gradient stuck :(")
 
-            B_k = next_B
+        s = B_k.dot(q)
+        t = s.T.dot(q)
+
+        if np.linalg.norm(t) == 0:
+            raise RuntimeError("t is zero")
+
+        m = p.T.dot(q)
+
+        if np.linalg.norm(m) == 0:
+            raise RuntimeError("m is zero")
+
+        v = p / m - s / t
+        next_B = B_k + sqr(p) / m - sqr(s) / t + t * sqr(v)
+
+        B_k = next_B
+
         x_k = next_x
-        print("Ending iteration #", len(f_history))
+        print("next gradient size=", np.linalg.norm(g_next_x))
 
     return x_k, f_history
 
