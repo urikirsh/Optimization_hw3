@@ -68,7 +68,9 @@ def analytic_calc_dir_grads_dnn_error(x: np.ndarray, parameters: dict, direction
     if direction == 'b1':
         return b1_dir_der.T
 
-    raise NotImplementedError('Direction', direction, 'not implemented yet')
+    assert direction == 'W1'
+
+    return b1_dir_der @ x.T
 
 
 def generate_bias(n: int, random=False):
@@ -152,7 +154,7 @@ class task3_q_2 (unittest.TestCase):
         x = 2 * np.random.rand(2, 1) - 1
         epsilon = pow(2, -30)
 
-        ready_tests = ['b1', 'W2', 'b2', 'W3', 'b3']
+        ready_tests = ['W1', 'b1', 'W2', 'b2', 'W3', 'b3']
         for test in ready_tests:
             anal = analytic_calc_dir_grads_dnn_error(x, params, test)
             numeric = numdiff_calc_dnn_error_grad(test, x, params, epsilon)
