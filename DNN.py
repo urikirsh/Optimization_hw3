@@ -2,10 +2,12 @@ import math
 import numpy as np
 import unittest
 import numpy.testing as npt
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D  # necessary despite Pycharm thinking otherwise
 
 
 def target_function_f(x, y):
-    return x * math.exp(x**2 - y**2)
+    return x * math.exp(-x**2 - y**2)
 
 
 def phi_f(x: np.ndarray):
@@ -128,7 +130,23 @@ def numdiff_calc_dnn_error_grad(grad_of, x, params: dict, epsilon: float):
 
 
 def main():
-    raise NotImplementedError()
+    # unittest.main()
+
+    # plot the target function
+    line = np.arange(-2, 2, .2)
+    X1, X2 = np.meshgrid(line, line)
+    vectorized_target_function = np.vectorize(target_function_f)
+    Y = vectorized_target_function(X1, X2)
+
+    fig = plt.figure(figsize=(10, 8))
+    ax = fig.add_subplot(111, projection='3d')
+    ax.plot_surface(X1, X2, Y, cmap=plt.cm.coolwarm, alpha=.6)
+    ax.set_xlabel('$x_1$')
+    ax.set_ylabel('$x_2$')
+    ax.set_zlabel('$f(x_1, x_2)$')
+    plt.title('$f(x_1, x_2) = x_1*exp(-x_1^2-x_2^2)$')
+
+    plt.show()
 
 
 class task3_q_2 (unittest.TestCase):
@@ -166,5 +184,5 @@ class task3_q_2 (unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    main()
 
