@@ -62,6 +62,13 @@ def dnn_error(x: np.ndarray, parameters: dict):
 
 
 def analytic_calc_dir_grads_dnn_error(x: np.ndarray, parameters: dict, direction: str):
+    '''
+    Analaytic calculation of directional gradients
+    :param x: The point at which we calculate the gradient
+    :param parameters: DNN weights and biases
+    :param direction: Name of the parameter that will be the direction of the gradient
+    :return:
+    '''
     assert direction in parameters
 
     y = true_function_y(x[0], x[1])
@@ -72,7 +79,6 @@ def analytic_calc_dir_grads_dnn_error(x: np.ndarray, parameters: dict, direction
 
     u1 = parameters['W1'].T @ x + parameters['b1']
     u2 = parameters['W2'].T @ phi_f(u1) + parameters['b2']
-    # u3 = parameters['W3'].T @ phi_f(u2) + parameters['b3']
 
     if direction == 'W3':
         return nabla_r_Psi @ phi_f(u2).T
@@ -107,7 +113,11 @@ def generate_weight(m: int, n: int):
 
 
 def generate_params(random=True):
-    # If random is false, biases will be initialized as zeros
+    '''
+    Generate weights and biases for a DNN
+    :param random: If true returns random biases, if false biases are initialized as zeros
+    :return: A dictionary of 3 weights and 3 biases
+    '''
     params = dict()
     params['b1'] = generate_bias(4, random=random)
     params['b2'] = generate_bias(3, random=random)
@@ -119,6 +129,9 @@ def generate_params(random=True):
 
 
 def numdiff_calc_dnn_error_grad(grad_of, x, params: dict, epsilon: float):
+    '''
+    calculate DNN error's gradients by numeric differences.
+    '''
     assert epsilon > 0
     assert grad_of in params
 
@@ -133,7 +146,7 @@ def numdiff_calc_dnn_error_grad(grad_of, x, params: dict, epsilon: float):
     y_dim = params[grad_of].shape[1]
     grad = np.zeros(params[grad_of].shape)
     for i in range(0, x_dim):
-        for j in range (0,y_dim):
+        for j in range(0, y_dim):
             params[grad_of][i][j] += epsilon
             right_f = dnn_error(x, params)
             params[grad_of][i][j] -= 2*epsilon
@@ -141,7 +154,7 @@ def numdiff_calc_dnn_error_grad(grad_of, x, params: dict, epsilon: float):
             diff = right_f - left_f
             assert diff.shape == (1, 1)
             diff = diff[0][0]
-            grad[i][j] = diff / (2*epsilon)
+            grad[i][j] = diff / (2 * epsilon)
             # cleanup
             params[grad_of][i][j] += epsilon
 
@@ -149,12 +162,17 @@ def numdiff_calc_dnn_error_grad(grad_of, x, params: dict, epsilon: float):
 
 
 def pack_params(params):
-    # save the packing dimensions
+    '''
+    Takes an iterable of ndarrays and stacks them to one ndarray.
+    '''
     pack_params.shapes = [param.shape for param in params]
     return np.hstack(np.ravel(param) for param in params).reshape(-1, 1)
 
 
 def unpack_params(packed: np.ndarray):
+    '''
+    Unpacks parameters that have been packed with pack_params
+    '''
     shapes = pack_params.shapes
     sizes = map(lambda x: x[0] * x[1], shapes)
     indexes = list(sizes)
@@ -165,6 +183,13 @@ def unpack_params(packed: np.ndarray):
 
 
 def dnn_error_ang_grad(x: np.ndarray, y, parameters):
+    '''
+    Return the DNN error and it's gradient as a stacked vector
+    :param x: The DNN's output
+    :param y: The true value (label)
+    :param parameters: Weights and biases of the DNN, used for computing gradients
+    :return:
+    '''
     x = x.reshape((-1, 1))
     W1, W2, W3, b1, b2, b3 = unpack_params(parameters)
     param_dict = {'W1': W1, 'W2': W2, 'W3': W3, 'b1': b1, 'b2': b2, 'b3': b3}
@@ -181,8 +206,6 @@ def dnn_error_ang_grad(x: np.ndarray, y, parameters):
 
 
 def target_function(X, Y, parameters):
-    # W1, b1, W2, b2, W3, b3 = unpack_params(parameters)
-    # dnn_error_dict = {'W1': W1, 'W2': W2, 'W3': W3, 'b1': b1, 'b2': b2, 'b3': b3}
     error_sum = sum(dnn_error_ang_grad(x, y, parameters)[0] for x, y in zip(X.T, Y))
     gradient = dnn_error_ang_grad(X.T[0], Y[0], parameters)[1]
     # return error_sum / X.shape[1], gradient
@@ -212,11 +235,11 @@ def main():
 
     # generate train and test data
     # Ntrain = 500
-    Ntrain = 4
+    Ntrain = 500
     X_train = 4 * np.random.rand(2, Ntrain) - 2
 
     # Ntest = 200
-    Ntest = 5
+    Ntest = 200
     X_test = 4 * np.random.rand(2, Ntest) - 2
 
     Y_train = np.zeros((Ntrain, 1))
@@ -256,7 +279,7 @@ def main():
     ax.set_ylabel('$x_2$')
     ax.set_zlabel('$F(x, W)$')
     ax.scatter(X_test[:][0], X_test[:][1], reconstructed, c='g', alpha=.61)
-    plt.title('$Predictions of trained DNN$')
+    plt.title('Predictions of trained DNN')
     plt.show()
 
     print('success')
