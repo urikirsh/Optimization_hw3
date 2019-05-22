@@ -9,7 +9,7 @@ def target_function_f(x, y):
 
 
 def phi_f(x: np.ndarray):
-    return np.tanh(x)
+    return np.tanh(x).reshape((len(x), 1))
 
 
 def phi_g(x: np.ndarray):
@@ -51,6 +51,13 @@ def analytic_calc_dir_grads_dnn_error(x: np.ndarray, parameters: dict, direction
         return nabla_r_Psi
 
     u1 = parameters['W1'].T @ x + parameters['b1']
+    u2 = parameters['W2'].T @ phi_f(u1) + parameters['b2']
+    # u3 = parameters['W3'].T @ phi_f(u2) + parameters['b3']
+
+    if direction == 'W3':
+        return nabla_r_Psi @ phi_f(u2).T
+
+    raise NotImplementedError('Direction', direction, 'not implemented yet')
 
 
 def generate_bias(n: int, random=False):
@@ -85,16 +92,24 @@ def numdiff_calc_dnn_error_grad(grad_of, x, params: dict, epsilon: float):
     dim = len(x)
     epsilon = pow(epsilon, 1 / dim) * max_abs_val_of_x
 
-    params[grad_of] += epsilon
-    right_f = dnn_error(x, params)
-    params[grad_of] -= 2*epsilon
-    left_f = dnn_error(x, params)
-    result = (right_f - left_f) / (2*epsilon)
+    assert x.shape[1] == 1
 
-    # cleanup
-    params[grad_of] += epsilon
+    dim = params[grad_of].shape[0]
+    grad = []
+    for i in range(0, dim):
+        params[grad_of][i] += epsilon
+        right_f = dnn_error(x, params)
+        params[grad_of][i] -= 2*epsilon
+        left_f = dnn_error(x, params)
+        diff = right_f - left_f
+        assert diff.shape == (1, 1)
+        diff = diff[0][0]
+        grad.append(diff / (2*epsilon))
+        # cleanup
+        params[grad_of][i] += epsilon
 
-    return result
+    grad = np.asfarray(grad).reshape((1, dim))
+    return grad
 
 
 def main():
@@ -124,9 +139,15 @@ class task3_q_2 (unittest.TestCase):
         x = 2 * np.random.rand(2, 1) - 1
         epsilon = pow(10, 0)
 
-        anal = analytic_calc_dir_grads_dnn_error(x, params, 'b3')
-        numeric = numdiff_calc_dnn_error_grad('b3', x, params, epsilon)
-        npt.assert_almost_equal(numeric, anal)
+        ready_tests = ['W3', 'b3']
+        for test in ready_tests:
+            anal = analytic_calc_dir_grads_dnn_error(x, params, test)
+            numeric = numdiff_calc_dnn_error_grad(test, x, params, epsilon)
+            npt.assert_almost_equal(numeric, anal)
+
+    def test_stress_grad_numdiff(self):
+        for i in range(0, 100):
+            self.test_grad_numdiff()
 
 
 if __name__ == "__main__":
