@@ -4,9 +4,10 @@ import unittest
 import numpy.testing as npt
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D  # necessary despite Pycharm thinking otherwise
+import BFGS
 
 
-def target_function_f(x, y):
+def true_function_y(x, y):
     return x * math.exp(-x**2 - y**2)
 
 
@@ -39,14 +40,14 @@ def dnn_error(x: np.ndarray, parameters: dict, nargout=1):
     assert 1 <= nargout <= 2
     if nargout == 1:
         out = dnn_forward(x, parameters)
-        y = target_function_f(x[0], x[1])
+        y = true_function_y(x[0], x[1])
         return error_f(out, y)
 
 
 def analytic_calc_dir_grads_dnn_error(x: np.ndarray, parameters: dict, direction: str):
     assert direction in parameters
 
-    y = target_function_f(x[0], x[1])
+    y = true_function_y(x[0], x[1])
     out = dnn_forward(x, parameters)
     nabla_r_Psi = 2 * (out - y)
     if direction == 'b3':
@@ -146,12 +147,40 @@ def unpack_params(packed: np.ndarray):
     return (arr.reshape(shape) for arr, shape in zip(arrays, shapes))
 
 
-def main():
+def dnn_error_ang_grad(x: np.ndarray, y, parameters):
+    x = x.reshape((-1, 1))
+    W1, W2, W3, b1, b2, b3 = unpack_params(parameters)
+    param_dict = {'W1': W1, 'W2': W2, 'W3': W3, 'b1': b1, 'b2': b2, 'b3': b3}
+    out = dnn_forward(x, param_dict)
+    error = error_f(out, y)
+    grad_W1 = analytic_calc_dir_grads_dnn_error(x, param_dict, 'W1').T
+    grad_W2 = analytic_calc_dir_grads_dnn_error(x, param_dict, 'W2').T
+    grad_W3 = analytic_calc_dir_grads_dnn_error(x, param_dict, 'W3').T
+    grad_b1 = analytic_calc_dir_grads_dnn_error(x, param_dict, 'b1').T
+    grad_b2 = analytic_calc_dir_grads_dnn_error(x, param_dict, 'b2').T
+    grad_b3 = analytic_calc_dir_grads_dnn_error(x, param_dict, 'b3').T
+    return np.array((error,
+                     pack_params((grad_W1, grad_W2, grad_W3, grad_b1, grad_b2, grad_b3))))
 
+
+def target_function(X, Y, parameters):
+    # W1, b1, W2, b2, W3, b3 = unpack_params(parameters)
+    # dnn_error_dict = {'W1': W1, 'W2': W2, 'W3': W3, 'b1': b1, 'b2': b2, 'b3': b3}
+    error_sum = sum(dnn_error_ang_grad(x, y, parameters)[0] for x, y in zip(X.T, Y))
+    gradient = dnn_error_ang_grad(X.T[0], Y[0], parameters)[1]
+    return error_sum / X.shape[1], gradient
+
+
+def get_target_f_of_params(X, Y):
+    return lambda p: target_function(X=X, Y=Y, parameters=p)
+
+
+
+def main():
     # plot the target function
     line = np.arange(-2, 2, .2)
     X1, X2 = np.meshgrid(line, line)
-    vectorized_target_function = np.vectorize(target_function_f)
+    vectorized_target_function = np.vectorize(true_function_y)
     Y = vectorized_target_function(X1, X2)
 
     fig = plt.figure(figsize=(10, 8))
@@ -179,6 +208,13 @@ def main():
     for i in range(0, Ntest):
         Y_test[i] = vectorized_target_function(X_test[0][i], X_test[1][i])
 
+    params = generate_params(False)  # need to repack them
+    params = pack_params((params['W1'], params['W2'], params['W3'], params['b1'],
+                         params['b2'], params['b3']))
+
+    learned_params, f_history = BFGS.BFGS(get_target_f_of_params(X_train, Y_train), params)
+    print('success')
+
 
 class task3_q_2 (unittest.TestCase):
     '''
@@ -186,9 +222,9 @@ class task3_q_2 (unittest.TestCase):
     '''
 
     def test_target_function(self):
-        npt.assert_almost_equal(target_function_f(0, 0), 0)
-        npt.assert_almost_equal(target_function_f(0, 17), 0)
-        npt.assert_almost_equal(target_function_f(1, 0), np.exp(-1))
+        npt.assert_almost_equal(true_function_y(0, 0), 0)
+        npt.assert_almost_equal(true_function_y(0, 17), 0)
+        npt.assert_almost_equal(true_function_y(1, 0), np.exp(-1))
 
 
     def test_generate_params(self):
@@ -228,6 +264,6 @@ class task3_q_2 (unittest.TestCase):
 
 
 if __name__ == "__main__":
-    # main()
-    unittest.main()
+    main()
+    # unittest.main()
 

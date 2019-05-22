@@ -83,7 +83,7 @@ def BFGS(fun, x_0):
     x_k = x_0
 
     while True:
-        print("x_k =", x_k)
+        print("Starting iteration #", len(f_history)+1)
         f_x, g_x = fun(x_k)
         f_history.append(f_x)
         if np.linalg.norm(g_x) < EPSILON:
@@ -95,6 +95,8 @@ def BFGS(fun, x_0):
         dir_size = np.linalg.norm(direction)
         if dir_size == 0:
             raise FloatingPointError()
+        if not dir_size > 0:
+            print('DELETE THIS BREAHKPOINT')
         assert dir_size > 0
         direction = direction / dir_size
         assert abs(np.linalg.norm(direction) - 1) < 0.0000001  # Turns out not to be zero for rounding errors
@@ -109,15 +111,17 @@ def BFGS(fun, x_0):
         # 4. Update approximate inverse Hessian
         p = next_x - x_k
         q = g_next_x - g_x
-        s = B_k.dot(q)
-        t = s.T.dot(q)
+        if np.linalg.norm(q) != 0:
+            s = B_k.dot(q)
+            t = s.T.dot(q)
 
-        m = p.T.dot(q)
-        v = p / m - s / t
-        next_B = B_k + sqr(p) / m - sqr(s) / t + t * sqr(v)
+            m = p.T.dot(q)
+            v = p / m - s / t
+            next_B = B_k + sqr(p) / m - sqr(s) / t + t * sqr(v)
 
-        B_k = next_B
+            B_k = next_B
         x_k = next_x
+        print("Ending iteration #", len(f_history))
 
     return x_k, f_history
 
