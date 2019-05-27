@@ -1,0 +1,282 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits import mplot3d
+import matplotlib
+
+class dnn:
+    def __init__(self):
+        self.w1 = np.random.randn(2, 4) / np.sqrt(4)
+        self.w2 = np.random.randn(4, 3) / np.sqrt(3)
+        self.w3 = np.random.randn(3, 1) / np.sqrt(1)
+        self.b1 = np.zeros((4, 1))
+        self.b2 = np.zeros((3, 1))
+        self.b3 = np.zeros((1, 1))
+
+    @staticmethod
+    def tanh(x):
+        ex = np.exp(-2 * x)
+        return (1 - ex) / (1 + ex)
+
+    @staticmethod
+    def tanh_derivative(u):
+        return 4 / np.square(np.exp(-u) + np.exp(u))
+
+    def loss(self, x, y):
+        ys = self.predict(x)
+        loss = np.sum((ys - y) ** 2) / len(y)
+        return loss
+
+    def calc_loss(self, weights_vec, x, y):
+        vals = self.calc_val_from_vec(weights_vec, x)[2]
+        loss = np.sum((vals - y) ** 2) / len(y)
+        return loss
+
+    @staticmethod
+    def loss_grad(ys, y):
+        return 2 * (ys - y)
+
+    def calc_grads(self, w1_, w2_, w3_, b1_, b2_, b3_, x, y):
+        a1, a2, a3 = self.calc_val_from_weights(w1_, w2_, w3_, b1_, b2_, b3_, x)
+        dL = dnn.loss_grad(a3, y)
+        dw3 = a2 @ dL.T
+        db3 = dL
+        dL = dnn.tanh_derivative(a2) * w3_ @  dL
+        db2 = dL
+        dw2 = a1 @ dL.T
+        dL = dnn.tanh_derivative(a1) * w2_ @ dL
+        db1 = dL
+        dw1 = x @ dL.T
+
+        return dw1, dw2, dw3, db1, db2, db3
+
+    def calc_val_from_vec(self, weights_vec, x):
+        """
+        Evaluates the dnn prediction based on the weights in the stack
+        :return: dnn prediction
+        """
+        w1_, w2_, w3_, b1_, b2_, b3_ = self.vector_to_weights(weights_vec)
+        return dnn.calc_val_from_weights(w1_, w2_, w3_, b1_, b2_, b3_, x)
+
+    @staticmethod
+    def calc_val_from_weights(w1_, w2_, w3_, b1_, b2_, b3_, x):
+        a1 = dnn.tanh(w1_.T @ x + b1_)
+        a2 = dnn.tanh(w2_.T @ a1 + b2_)
+        a3 = w3_.T @ a2 + b3_
+        return a1, a2, a3
+
+    def predict(self, x):
+        return dnn.calc_val_from_weights(self.w1, self.w2, self.w3, self.b1, self.b2, self.b3, x)[2]
+
+    def vector_to_weights(self, vec):
+        """
+        :param vec: a column stack of all weights, ordered by - w1, w2, w3, b1, b2, b3
+        :return: tuple of the original tensors
+        """
+        w1_ = vec[:self.w1.size].reshape(self.w1.shape)
+        w2_ = vec[self.w1.size:self.w1.size + self.w2.size].reshape(self.w2.shape)
+        w3_ = vec[self.w1.size + self.w2.size:self.w1.size + self.w2.size + self.w3.size].reshape(self.w3.shape)
+        b_stack = vec[self.w1.size + self.w2.size + self.w3.size:]
+        b1_ = b_stack[:self.b1.size].reshape(self.b1.shape)
+        b2_ = b_stack[self.b1.size:self.b1.size + self.b2.size].reshape(self.b2.shape)
+        b3_ = b_stack[self.b1.size + self.b2.size:].reshape(self.b3.shape)
+        return w1_, w2_, w3_, b1_, b2_, b3_
+
+    @staticmethod
+    def weights_to_vector(weights):
+        return np.concatenate([weight.flatten() for weight in weights]).reshape(-1, 1)
+
+    def fit(self, x, y):
+        weights_stack = self.weights_to_vector([self.w1, self.w2, self.w3, self.b1, self.b2, self.b3])
+
+        def obj_fun(weights_vec):
+            def calc_val():
+                """
+                Evaluates the dnn prediction based on the weights in the stack
+                :return: dnn prediction
+                """
+                return self.calc_loss(weights_vec, x, y)
+
+            def grad():
+                """
+                Evaluates the gradient stack, based on the weights in the stacm
+                :return: gradients stack
+                """
+                X = x.T
+                Y = y.T
+                w1_, w2_, w3_, b1_, b2_, b3_ = self.vector_to_weights(weights_vec)
+                wgs = [self.calc_grads(w1_, w2_, w3_, b1_, b2_, b3_, x_.reshape(-1, 1), y_) for x_, y_ in zip(X, Y)]
+                return sum(dnn.weights_to_vector(wg) for wg in wgs) / X.shape[0]
+                # w1_g, w2_g, w3_g, b1_g, b2_g, b3_g = self.calc_grads(w1_, w2_, w3_, b1_, b2_, b3_, x, y)
+                # return dnn.weights_to_vector([w1_g, w2_g, w3_g, b1_g, b2_g, b3_g])
+
+            return calc_val(), grad()
+
+        tuned_weights, history = bfgs(fun=obj_fun,
+                                      x=weights_stack)
+
+        self.w1, self.w2, self.w3, self.b1, self.b2, self.b3 = self.vector_to_weights(tuned_weights)
+        return history
+
+
+def rb_fun(x):
+    def rb():
+        s = 0
+        for i in range(len(x) - 1):
+            s += (1 - x[i]) ** 2 + 100 * (x[i + 1] - x[i] ** 2) ** 2
+
+        return np.squeeze(s)
+
+    def g_rb():
+        res = np.zeros(x.shape)
+        res[0] = -2 + 2 * x[1] - 400 * x[0] * x[1] + 400 * x[0] ** 3
+
+        for i in range(1, x.shape[0] - 1):
+            res[i] = 400 * x[i] ** 3 - 200 * x[i - 1] ** 2 - 400 * x[i] * x[i + 1] + 202 * x[i] - 2
+
+        res[-1] = 200 * (x[-1] - x[-2] ** 2)
+        return res
+
+    return rb(), g_rb()
+
+
+def norm(x):
+    return np.sqrt(np.sum(x * x))
+
+
+def armijo_lr(fun, x, direction, alpha=1, beta=0.5, sigma=0.25):
+    def phi(step):
+        return fun(x + step * direction)[0] - fun(x)[0]
+
+    while True:
+        temp_phi = phi(alpha)
+        temp_grad = fun(x)[1]
+        if temp_phi < sigma * temp_grad.T @ direction * alpha:
+            return alpha
+
+        alpha *= beta
+
+
+def bfgs(fun, x):
+    epsilon = 1e-1
+
+    H = np.eye(x.shape[0])
+    m = []
+    epoch = 0
+    while True:
+        f_val, f_grad = fun(x)
+        m.append(f_val)
+        print('Epoch {} - Loss: {}'.format(epoch, f_val))
+        ng = norm(f_grad)
+        if ng < epsilon:
+            break
+
+        direction = - H @ f_grad
+        lr = armijo_lr(fun=fun,
+                       x=x,
+                       direction=direction)
+
+        if lr == 0:
+            break
+        p = lr * direction
+        new_x = x + p
+
+        new_f_val, new_f_grad = fun(new_x)
+        c = 0.9
+        if new_f_grad.T @ direction > c * f_grad.T @ direction:
+            x += p
+            g = new_f_grad - f_grad
+            s = H @ g
+            t = s.T @ g
+            u = p.T @ g
+            v = (p / u) - (s / t)
+            d = 1  # 1 for BFGS, 0 for DFP
+            H += ((p @ p.T) / u) - ((s @ s.T) / t) + d * t * v @ v.T
+        else:
+            x += p
+            H = np.eye(x.shape[0])
+
+        epoch += 1
+
+    return x, m
+
+
+def part1():
+    N = 10
+    x, m = bfgs(fun=rb_fun,
+                x=np.zeros((N, 1)))
+
+    plt.figure()
+    plt.plot(m)
+    plt.ylabel('$f(x_k) - f^*$')
+    plt.xlabel('iteration')
+    plt.title('Rosenbrock convergences using BFGS')
+    plt.yscale('log')
+    plt.savefig('rb_conv_bfgs.png')
+
+
+def plot_f(name, title, f):
+    x = np.arange(-2, 2, 0.2)
+    y = np.arange(-2, 2, 0.2)
+    X, Y = np.meshgrid(x, y)
+    Z = f(X, Y)
+
+    fig = plt.figure()
+    ax = plt.axes(projection='3d')
+    ax.plot_surface(X, Y, Z)
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_zlabel('z')
+    ax.view_init(60, 35)
+    plt.title(title)
+    plt.savefig(name + '.png')
+
+
+def task4():
+    def f(x_, y_):
+        return x_ * np.exp(-(x_ ** 2) - (y_ ** 2))
+
+    plot_f(r'task4.1', r'$f(x_1, x_2)=x_1 \cdot e^{(-x_1^2 -x_2^2)}$', f)
+
+    x_train = np.random.uniform(low=-2, high=2, size=(2, 500))
+    x_test = np.random.uniform(low=-2, high=2, size=(2, 500))
+    y_train = f(x_train[0, :], x_train[1, :])
+    y_test = f(x_test[0, :], x_test[1, :])
+
+    net = dnn()
+    history = net.fit(x_train, y_train)
+
+    # plot convergence
+    plt.figure()
+    plt.plot(history)
+    plt.title("Convergence")
+    plt.ylabel("Loss")
+    plt.xlabel("Iteration")
+    plt.savefig("convergence.png")
+
+    loss = net.loss(x_test, y_test)
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_zlabel('z')
+    ax.view_init(60, 35)
+    xs = x_test[0, :]
+    ys = x_test[1, :]
+    zs = net.predict(x_test)
+    ax.scatter(xs, ys, zs)
+    x = np.arange(-2, 2, 0.2)
+    y = np.arange(-2, 2, 0.2)
+    X, Y = np.meshgrid(x, y)
+    Z = f(X, Y)
+    ax.plot_surface(X, Y, Z)
+    plt.savefig(r'dnn_output.png')
+
+
+
+def main():
+    part1()
+    task4()
+
+
+if __name__ == '__main__':
+    main()

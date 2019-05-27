@@ -92,7 +92,6 @@ def BFGS(fun, x_0):
 
         # 2. Inexact line search - Armijo method
         step_size = armijo_line_search(x_k, fun, direction)
-        step_size = max(step_size, pow(10, -12))
         s_k = step_size * direction
         next_x = x_k + s_k
 
@@ -101,29 +100,18 @@ def BFGS(fun, x_0):
 
         # 4. Update approximate inverse Hessian
         p = next_x - x_k
-        if np.linalg.norm(p) == 0:
-            raise RuntimeError("We stopped moving :(")
         q = g_next_x - g_x
 
-        if np.linalg.norm(q) == 0:
-            raise RuntimeError("Gradient stuck :(")
+        if np.linalg.norm(q) > 0:
+            s = B_k.dot(q)
+            t = s.T.dot(q)
+            m = p.T.dot(q)
+            v = p / m - s / t
+            next_B = B_k + sqr(p) / m - sqr(s) / t + t * sqr(v)
 
-        s = B_k.dot(q)
-        t = s.T.dot(q)
-
-        if np.linalg.norm(t) == 0:
-            raise RuntimeError("t is zero")
-
-        m = p.T.dot(q)
-
-        if np.linalg.norm(m) == 0:
-            raise RuntimeError("m is zero")
-
-        v = p / m - s / t
-        next_B = B_k + sqr(p) / m - sqr(s) / t + t * sqr(v)
-
-        B_k = next_B
-
+            B_k = next_B
+        else:
+            B_k = np.identity(x_len)
         x_k = next_x
         print("next gradient size=", np.linalg.norm(g_next_x))
 
